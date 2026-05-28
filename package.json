@@ -1,0 +1,45 @@
+{
+  "name": "allow-claude-to-compact",
+  "version": "1.0.0",
+  "description": "MCP server that lets an AI coding agent (Claude Code, Codex, etc.) trigger its own /compact by typing it into the terminal that runs it.",
+  "type": "module",
+  "bin": {
+    "allow-claude-to-compact": "dist/index.js"
+  },
+  "main": "dist/index.js",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsc --watch",
+    "prepare": "tsc"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "claude",
+    "claude-code",
+    "codex",
+    "compact",
+    "context-window",
+    "windows",
+    "automation"
+  ],
+  "author": "Hugo MATHIEU",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0"
+  }
+}
