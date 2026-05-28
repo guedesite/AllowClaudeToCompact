@@ -5,12 +5,20 @@ import { z } from "zod";
 import { runAutomation } from "./winAutomation.js";
 
 // --- Configuration via environment variables --------------------------------
-// ACTC_COMMAND      : the text to type (default "/compact")
-// ACTC_DELAY_MS     : delay before stealing focus & typing (default 600)
-// ACTC_TITLE_REGEX  : optional regex to find the target terminal by window title
+// ACTC_COMMAND           : the text to type (default "/compact")
+// ACTC_DELAY_MS          : delay before stealing focus & typing (default 600)
+// ACTC_TITLE_REGEX       : optional regex to find the target terminal by window title
+// ACTC_FOLLOWUP          : text typed after the command (default "continue"; "" disables)
+// ACTC_FOLLOWUP_DELAY_MS : wait between command and follow-up (default 1000)
 const DEFAULT_COMMAND = process.env.ACTC_COMMAND || "/compact";
 const DEFAULT_DELAY_MS = parseInt(process.env.ACTC_DELAY_MS || "600", 10);
 const DEFAULT_TITLE_REGEX = process.env.ACTC_TITLE_REGEX || undefined;
+const DEFAULT_FOLLOWUP =
+  process.env.ACTC_FOLLOWUP !== undefined ? process.env.ACTC_FOLLOWUP : "continue";
+const DEFAULT_FOLLOWUP_DELAY_MS = parseInt(
+  process.env.ACTC_FOLLOWUP_DELAY_MS || "1000",
+  10
+);
 
 const server = new McpServer({
   name: "allow-claude-to-compact",
@@ -26,8 +34,9 @@ server.registerTool(
       "terminal window that runs this agent and typing the compact command (default '/compact') " +
       "followed by Enter. Call this when you have finished a logical chunk of work and want to " +
       "summarize and free up context before continuing — something agents normally cannot do for " +
-      "themselves. The compaction happens after this tool returns. Prefer calling it as the last " +
-      "action of a turn so the typed command is not interrupted.",
+      "themselves. By default, after compacting it waits ~1s and types 'continue' so you resume " +
+      "your work automatically once compaction finishes. The compaction happens after this tool " +
+      "returns. Prefer calling it as the last action of a turn so the typed command is not interrupted.",
     inputSchema: {
       command: z
         .string()
@@ -53,13 +62,32 @@ server.registerTool(
           "Optional .NET regex matched against window titles to pick the target terminal. " +
             "Only needed when automatic process-tree detection fails."
         ),
+      followUp: z
+        .string()
+        .optional()
+        .describe(
+          `Text to type after the compact command, once compaction has had time to start. ` +
+            `Defaults to "${DEFAULT_FOLLOWUP}". Pass an empty string to send nothing.`
+        ),
+      followUpDelayMs: z
+        .number()
+        .int()
+        .min(0)
+        .max(60000)
+        .optional()
+        .describe(
+          `Milliseconds to wait between the compact command and the follow-up text ` +
+            `(default ${DEFAULT_FOLLOWUP_DELAY_MS}).`
+        ),
     },
   },
-  async ({ command, delayMs, titleRegex }) => {
+  async ({ command, delayMs, titleRegex, followUp, followUpDelayMs }) => {
     const result = await runAutomation({
       command: command ?? DEFAULT_COMMAND,
       delayMs: delayMs ?? DEFAULT_DELAY_MS,
       titleRegex: titleRegex ?? DEFAULT_TITLE_REGEX,
+      followUp: followUp ?? DEFAULT_FOLLOWUP,
+      followUpDelayMs: followUpDelayMs ?? DEFAULT_FOLLOWUP_DELAY_MS,
     });
 
     return {
@@ -96,6 +124,8 @@ server.registerTool(
       command: DEFAULT_COMMAND,
       delayMs: 0,
       titleRegex: titleRegex ?? DEFAULT_TITLE_REGEX,
+      followUp: DEFAULT_FOLLOWUP,
+      followUpDelayMs: DEFAULT_FOLLOWUP_DELAY_MS,
       dryRun: true,
     });
 

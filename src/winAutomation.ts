@@ -19,6 +19,8 @@ param(
   [string]$CommandText = "/compact",
   [int]$DelayMs = 400,
   [string]$TitleRegex = "",
+  [string]$FollowUpText = "",
+  [int]$FollowUpDelayMs = 1000,
   [switch]$DryRun
 )
 
@@ -156,7 +158,8 @@ $result.target = [ordered]@{
 
 if ($DryRun) {
   $result.success = $true
-  $result.message = "Dry run: would type '$CommandText' + Enter into window '$($target.title)' (pid $($target.pid))."
+  $followNote = if ($FollowUpText -ne "") { ", then wait $($FollowUpDelayMs)ms and type '$FollowUpText' + Enter" } else { "" }
+  $result.message = "Dry run: would type '$CommandText' + Enter into window '$($target.title)' (pid $($target.pid))$followNote."
   $result | ConvertTo-Json -Depth 6 -Compress
   exit 0
 }
@@ -168,8 +171,18 @@ try {
   [System.Windows.Forms.SendKeys]::SendWait((Escape-SendKeys $CommandText))
   Start-Sleep -Milliseconds 150
   [System.Windows.Forms.SendKeys]::SendWait("{ENTER}")
-  $result.success = $true
   $result.message = "Typed '$CommandText' + Enter into '$($target.title)' (pid $($target.pid))."
+
+  if ($FollowUpText -ne "") {
+    if ($FollowUpDelayMs -gt 0) { Start-Sleep -Milliseconds $FollowUpDelayMs }
+    Focus-Window ([IntPtr]$target.hwnd)
+    [System.Windows.Forms.SendKeys]::SendWait((Escape-SendKeys $FollowUpText))
+    Start-Sleep -Milliseconds 150
+    [System.Windows.Forms.SendKeys]::SendWait("{ENTER}")
+    $result.message += " Then typed '$FollowUpText' + Enter after $($FollowUpDelayMs)ms."
+  }
+
+  $result.success = $true
 } catch {
   $result.message = "Failed while sending keys: $($_.Exception.Message)"
   $result | ConvertTo-Json -Depth 6 -Compress
@@ -210,6 +223,10 @@ export interface RunOptions {
   command: string;
   delayMs: number;
   titleRegex?: string;
+  /** Text to type after the command (e.g. "continue"). Empty/undefined = none. */
+  followUp?: string;
+  /** Milliseconds to wait between the command and the follow-up text. */
+  followUpDelayMs?: number;
   dryRun?: boolean;
   startPid?: number;
 }
@@ -247,6 +264,10 @@ export async function runAutomation(opts: RunOptions): Promise<AutomationResult>
   ];
   if (opts.titleRegex) {
     args.push("-TitleRegex", opts.titleRegex);
+  }
+  if (opts.followUp) {
+    args.push("-FollowUpText", opts.followUp);
+    args.push("-FollowUpDelayMs", String(opts.followUpDelayMs ?? 1000));
   }
   if (opts.dryRun) {
     args.push("-DryRun");

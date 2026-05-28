@@ -22,6 +22,7 @@ The agent calls the MCP tool `compact_conversation`. The server then, on Windows
 1. **Finds the terminal window** that hosts the agent by walking up the process tree from the MCP server process (`node → claude → powershell → WindowsTerminal.exe`, etc.) until it reaches a known terminal/editor process that owns a real window.
 2. **Brings that window to the foreground.**
 3. **Types the command** (`/compact` by default) and presses **Enter**.
+4. **Optionally resumes** — by default it then waits ~1 s and types `continue` + Enter, so the agent picks its work back up automatically once compaction finishes. Configurable / disable-able (see [Configuration](#configuration)).
 
 All the OS-level work is done by an embedded PowerShell script using Win32 APIs (`SetForegroundWindow`, `AttachThreadInput`, `SendKeys`). No native Node modules are required.
 
@@ -69,7 +70,9 @@ Or per-project (committed to the repo, shared with your team) — create / edit 
       "args": ["C:\\Users\\<you>\\Desktop\\git\\AllowClaudeToCompact\\dist\\index.js"],
       "env": {
         "ACTC_COMMAND": "/compact",
-        "ACTC_DELAY_MS": "600"
+        "ACTC_DELAY_MS": "600",
+        "ACTC_FOLLOWUP": "continue",
+        "ACTC_FOLLOWUP_DELAY_MS": "1000"
       }
     }
   }
@@ -100,12 +103,16 @@ args = ["C:\\Users\\<you>\\Desktop\\git\\AllowClaudeToCompact\\dist\\index.js"]
 
 All optional, set via environment variables in the MCP server config:
 
-| Variable           | Default        | Description                                                                 |
-| ------------------ | -------------- | --------------------------------------------------------------------------- |
-| `ACTC_COMMAND`     | `/compact`     | Text typed into the terminal.                                               |
-| `ACTC_DELAY_MS`    | `600`          | Milliseconds to wait before stealing focus & typing (lets the turn render). |
-| `ACTC_TITLE_REGEX` | *(unset)*      | .NET regex matched against window titles — overrides process-tree detection. |
-| `ACTC_POWERSHELL`  | `powershell.exe` | PowerShell executable to use (set to `pwsh.exe` for PowerShell 7).         |
+| Variable                 | Default          | Description                                                                          |
+| ------------------------ | ---------------- | ------------------------------------------------------------------------------------ |
+| `ACTC_COMMAND`           | `/compact`       | Text typed into the terminal.                                                        |
+| `ACTC_DELAY_MS`          | `600`            | Milliseconds to wait before stealing focus & typing (lets the turn render).          |
+| `ACTC_FOLLOWUP`          | `continue`       | Text typed after the command once compaction has started. Set to `""` to send nothing. |
+| `ACTC_FOLLOWUP_DELAY_MS` | `1000`           | Milliseconds to wait between the command and the follow-up text.                     |
+| `ACTC_TITLE_REGEX`       | *(unset)*        | .NET regex matched against window titles — overrides process-tree detection.         |
+| `ACTC_POWERSHELL`        | `powershell.exe` | PowerShell executable to use (set to `pwsh.exe` for PowerShell 7).                   |
+
+By default the tool runs `/compact`, waits 1 s, then types `continue` so the agent automatically resumes after compaction. To compact **without** auto-resuming, set `ACTC_FOLLOWUP=""` (or pass `followUp: ""` on the call).
 
 ## Usage — telling the agent when to compact
 
