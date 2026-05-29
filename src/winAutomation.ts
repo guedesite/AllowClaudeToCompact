@@ -20,7 +20,7 @@ param(
   [int]$DelayMs = 400,
   [string]$TitleRegex = "",
   [string]$FollowUpText = "",
-  [int]$FollowUpDelayMs = 1000,
+  [int]$FollowUpDelayMs = 10000,
   [switch]$DryRun
 )
 
@@ -267,7 +267,7 @@ export async function runAutomation(opts: RunOptions): Promise<AutomationResult>
   }
   if (opts.followUp) {
     args.push("-FollowUpText", opts.followUp);
-    args.push("-FollowUpDelayMs", String(opts.followUpDelayMs ?? 1000));
+    args.push("-FollowUpDelayMs", String(opts.followUpDelayMs ?? 10000));
   }
   if (opts.dryRun) {
     args.push("-DryRun");

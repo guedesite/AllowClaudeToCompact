@@ -16,7 +16,7 @@ const DEFAULT_TITLE_REGEX = process.env.ACTC_TITLE_REGEX || undefined;
 const DEFAULT_FOLLOWUP =
   process.env.ACTC_FOLLOWUP !== undefined ? process.env.ACTC_FOLLOWUP : "continue";
 const DEFAULT_FOLLOWUP_DELAY_MS = parseInt(
-  process.env.ACTC_FOLLOWUP_DELAY_MS || "1000",
+  process.env.ACTC_FOLLOWUP_DELAY_MS || "10000",
   10
 );
 
@@ -34,7 +34,7 @@ server.registerTool(
       "terminal window that runs this agent and typing the compact command (default '/compact') " +
       "followed by Enter. Call this when you have finished a logical chunk of work and want to " +
       "summarize and free up context before continuing — something agents normally cannot do for " +
-      "themselves. By default, after compacting it waits ~1s and types 'continue' so you resume " +
+      "themselves. By default, after compacting it waits ~10s and types 'continue' so you resume " +
       "your work automatically once compaction finishes. The compaction happens after this tool " +
       "returns. Prefer calling it as the last action of a turn so the typed command is not interrupted.",
     inputSchema: {
